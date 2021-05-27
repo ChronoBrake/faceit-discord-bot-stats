@@ -36,5 +36,7 @@ exports.run = async (client, message, args, config) => {
 
             await message.channel.send(statsEmbed);
         })
+    }).catch(e => {
+        message.channel.send("Usuario no encontrado, compruebe mayúsculas minúsculas y/o caracteres especiales.");
     })
 };
