@@ -5,38 +5,43 @@ exports.run = async (client, message, args, config) => {
     let name = args[0];
     let url = `https://open.faceit.com/data/v4`;
     await axios.get(`${url}/players?nickname=${name}&game=csgo`, { 'headers': { 'Authorization': config["faceit-token"] } }).then(async data => {
-        let urlStats = `https://open.faceit.com/data/v4/players/${data.data.player_id}/stats/csgo`
-        await axios.get(urlStats, { 'headers': { 'Authorization': config["faceit-token"] } }).then(async dataStats => {
-            const res = data.data;
-            const resStats = dataStats.data;
-            let results = [];
+        const res = data.data;
+        let urlStats = `https://open.faceit.com/data/v4/players/${res.player_id}/stats/csgo`
+        await axios.get(urlStats, { 'headers': { 'Authorization': config["faceit-token"] } }).then(async dataMap => {
+            //console.log(dataMap)
+            console.log(data)
+            const resMap = dataMap.data.segments;
+            let map = "de_" + args[1];
+            map = map.toLowerCase();
+            let mapas = ["de_inferno", "de_dust2", "de_mirage", "de_ancient", "de_train", "de_nuke", "de_overpass", "de_vertigo"];
+            if (mapas.includes(map)) {
 
-            for (let i = 0; i < resStats.lifetime["Recent Results"].length; i++) {
-                if (resStats.lifetime["Recent Results"][i] == '1') {
-                    results.push('W');
-                } else {
-                    results.push('L');
+                for (let i = 0; i < resMap.length; i++) {
+                    if (resMap[i].mode == "5v5") {
+                        if (resMap[i].label == map) {
+                            let mapStats = resMap[i].stats;
+
+                            statsEmbed.setTitle(`Mapa: ${resMap[i].label}`);
+                            statsEmbed.setDescription(`FaceIt Profile: [${res.nickname}](https://www.faceit.com/en/players/${res.nickname})\n\nLVL: ${res.games.csgo.skill_level} & ELO: ${res.games.csgo.faceit_elo}`);
+                            statsEmbed.setThumbnail(resMap[i].img_regular);
+                            statsEmbed.setColor('#f2a121');
+
+                            statsEmbed.addField(`Multiple Kills en: ${map}`, `3K: ${mapStats["Triple Kills"]},\n4K: ${mapStats["Quadro Kills"]},\n5K/ACE: ${mapStats["Penta Kills"]}`, true);
+                            statsEmbed.addField(`Average K/D en: ${map}`, `${mapStats["Average K/D Ratio"]}`, true);
+                            statsEmbed.addField(`Rondas en: ${map}`, `${mapStats["Rounds"]}`, true);
+                            statsEmbed.addField(`MVPs en: ${map}`, `${mapStats["MVPs"]}`, true);
+                            statsEmbed.addField(`Partidas en: ${map}`, `${mapStats["Matches"]}`, true);
+                            statsEmbed.addField(`Wins en: ${map}`, `${mapStats["Wins"]}`, true);
+
+                            message.channel.send(statsEmbed);
+                        }
+                    }
                 }
+            } else {
+                message.channel.send("El mapa, no pertence al map pool oficial, estos son los mapas: (" + mapas + ")");
             }
-
-            //statsEmbed.setTitle(`FaceIt Profile: [${res.nickname}](https://www.faceit.com/en/players/${res.nickname}`);
-            statsEmbed.setDescription(`FaceIt Profile: [${res.nickname}](https://www.faceit.com/en/players/${res.nickname})\n\nLVL: ${res.games.csgo.skill_level} & ELO: ${res.games.csgo.faceit_elo}`);
-            statsEmbed.setColor('#f2a121');
-
-            statsEmbed.addField('% WinRate', resStats.lifetime["Win Rate %"], true);
-            statsEmbed.addField('Mayor Racha', resStats.lifetime["Longest Win Streak"], true);
-            statsEmbed.addField('Wins/Matches', `${resStats.lifetime["Wins"]}/${resStats.lifetime["Matches"]}`, true);
-            statsEmbed.addField('K/D Ratio', `${resStats.lifetime["Average K/D Ratio"]}`, true);
-            statsEmbed.addField('HS Ratio', `${resStats.lifetime["Average Headshots %"]}%`, true);
-            statsEmbed.addField('Resultados', `${results}`, true);
-
-            statsEmbed.setFooter('Infracciones: ' + `AFK: ${res.infractions.afk}, Abandono: ${res.infractions.leaver}`)
-            statsEmbed.setThumbnail(res.avatar);
-            statsEmbed.setImage(res.cover_image);
-
-            await message.channel.send(statsEmbed);
         })
-    }).catch(e => {
+    }).catch((e) => {
         message.channel.send("Usuario no encontrado, compruebe mayúsculas minúsculas y/o caracteres especiales.");
     })
 };
